@@ -6,12 +6,7 @@
   <title>Contact Form</title>
   <style>
     /* Reset & base styles */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f4f4;
@@ -21,88 +16,27 @@
       align-items: center;
       padding: 20px;
     }
-
-    .page-wrapper {
-      width: 100%;
-      max-width: 500px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .page-wrapper { width: 100%; max-width: 500px; display: flex; flex-direction: column; align-items: center; }
+    h1 { margin-bottom: 20px; text-align: center; font-size: 1.8rem; color: #333; }
+    .form-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; }
+    .form-container h2 { margin-bottom: 20px; text-align: center; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input[type="text"], input[type="email"], select {
+      width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
     }
-
-    h1 {
-      margin-bottom: 20px;
-      text-align: center;
-      font-size: 1.8rem;
-      color: #333;
-    }
-
-    .form-container {
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      width: 100%;
-    }
-
-    .form-container h2 {
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-
-    input[type="text"],
-    input[type="email"] {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
     button {
-      width: 100%;
-      padding: 10px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
+      width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;
     }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
+    button:hover { background-color: #0056b3; }
     @media (max-width: 480px) {
-      h1 {
-        font-size: 1.4rem;
-      }
-
-      .form-container {
-        padding: 20px;
-      }
-
-      input[type="text"],
-      input[type="email"] {
-        padding: 8px;
-      }
-
-      button {
-        font-size: 14px;
-        padding: 8px;
-      }
+      h1 { font-size: 1.4rem; }
+      .form-container { padding: 20px; }
+      input[type="text"], input[type="email"], select { padding: 8px; }
+      button { font-size: 14px; padding: 8px; }
     }
   </style>
+  <script src="https://assets.adobedtm.com/8f61749b38f7/1db4fb439fd4/launch-a7277e2f69b8-development.min.js" async></script>
 </head>
 <body>
   <div class="page-wrapper">
@@ -142,18 +76,57 @@
           <label for="oracleMoatId">Oracle Moat ID</label>
           <input type="text" id="oracleMoatId" name="oracleMoatId" />
         </div>
+
+        <!-- NEW: Stay Type -->
+        <div class="form-group">
+          <label for="staytype">Stay Type</label>
+          <select id="staytype" name="staytype" required>
+            <option value="">Select one...</option>
+            <option value="Business">Business</option>
+            <option value="Leisure">Leisure</option>
+          </select>
+        </div>
+
         <button type="submit">Submit</button>
       </form>
     </div>
   </div>
 
   <script>
+    // Simple data layer for AEP Data Collection (Tags)
+    window.digitalData = window.digitalData || {};
+
+    // Utility to create a stable-ish unique id for dedup across browser + server
+    function generateEventId() {
+      // Example: 'li-' + timestamp + random
+      return 'li-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    }
+
     document.getElementById('contactForm').addEventListener('submit', function(e) {
       e.preventDefault();
+
       const formData = new FormData(this);
       const data = Object.fromEntries(formData.entries());
-      console.log("Form submitted with: ", data);
-      alert("Form submitted successfully! Check console for details.");
+
+      // 1) Populate the data layer field Adobe will read
+      window.digitalData.staytype = data.staytype || 'Unknown';
+
+      // 2) Create & store a LinkedIn event id for dedup (used in both client + server)
+      window.digitalData.liEventId = generateEventId();
+
+      console.log('Form submitted with: ', data);
+      console.log('digitalData:', window.digitalData);
+
+      // 3) Dispatch a CustomEvent that AEP Tags listens for
+      document.dispatchEvent(new CustomEvent('contactFormSubmitted', {
+        detail: {
+          staytype: window.digitalData.staytype,
+          liEventId: window.digitalData.liEventId
+        }
+      }));
+
+      alert('Form submitted successfully! Check console for details.');
+      // You could also actually submit to your backend here.
     });
   </script>
 </body>
